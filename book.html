@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book {{ car.name }} — FlaskDrive</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<nav>
+  <div class="container nav-inner">
+    <a href="{{ url_for('index') }}" class="brand">Flask<span>Drive</span></a>
+    <div class="nav-links">
+      <a href="{{ url_for('index') }}">← Back to Cars</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="page-header">
+    <h1>Book {{ car.name }}</h1>
+    <p>Fill in your details and choose your dates below.</p>
+  </div>
+
+  <div class="booking-layout">
+    <!-- Form -->
+    <div class="form-card">
+      <h2>Your Details</h2>
+
+      {% if errors.overlap %}
+      <div class="alert-error">{{ errors.overlap }}</div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('book', car_id=car.id) }}">
+        <div class="form-group">
+          <label for="customer_name">Full Name</label>
+          <input type="text" id="customer_name" name="customer_name"
+                 value="{{ form.get('customer_name', '') }}" placeholder="Jane Smith" required>
+          {% if errors.customer_name %}<div class="field-error">{{ errors.customer_name }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="customer_email">Email Address</label>
+          <input type="email" id="customer_email" name="customer_email"
+                 value="{{ form.get('customer_email', '') }}" placeholder="jane@example.com" required>
+          {% if errors.customer_email %}<div class="field-error">{{ errors.customer_email }}</div>{% endif %}
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pickup_date">Pickup Date</label>
+            <input type="date" id="pickup_date" name="pickup_date"
+                   value="{{ form.get('pickup_date', '') }}" required>
+            {% if errors.pickup_date %}<div class="field-error">{{ errors.pickup_date }}</div>{% endif %}
+          </div>
+          <div class="form-group">
+            <label for="return_date">Return Date</label>
+            <input type="date" id="return_date" name="return_date"
+                   value="{{ form.get('return_date', '') }}" required>
+            {% if errors.return_date %}<div class="field-error">{{ errors.return_date }}</div>{% endif %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;">
+          Confirm Booking
+        </button>
+      </form>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-card">
+      <h2>Summary</h2>
+      {% if car.image_url %}
+      <img class="summary-img" src="{{ car.image_url }}" alt="{{ car.name }}">
+      {% endif %}
+      <div class="summary-name">{{ car.name }}</div>
+      <div class="summary-rows">
+        <div class="summary-row">
+          <span class="label">Rate</span>
+          <span>€{{ "%.2f"|format(car.price_per_day) }} / day</span>
+        </div>
+        <div class="summary-row" id="days-row" style="display:none">
+          <span class="label">Duration</span>
+          <span id="days-val">—</span>
+        </div>
+        <div class="summary-row">
+          <span class="label total-price">Estimated Total</span>
+          <span class="total-price" id="total-val">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">FlaskDrive &copy; 2025</div>
+</footer>
+
+<script>
+  const pricePerDay = {{ car.price_per_day }};
+  const pickupEl   = document.getElementById('pickup_date');
+  const returnEl   = document.getElementById('return_date');
+  const daysRow    = document.getElementById('days-row');
+  const daysVal    = document.getElementById('days-val');
+  const totalVal   = document.getElementById('total-val');
+
+  // Set min date to today
+  const today = new Date().toISOString().split('T')[0];
+  pickupEl.min = today;
+  returnEl.min = today;
+
+  function updateSummary() {
+    const p = pickupEl.value;
+    const r = returnEl.value;
+    if (!p || !r) { daysRow.style.display = 'none'; totalVal.textContent = '—'; return; }
+    const diff = (new Date(r) - new Date(p)) / 86400000;
+    if (diff <= 0) { daysRow.style.display = 'none'; totalVal.textContent = '—'; return; }
+    daysRow.style.display = 'flex';
+    daysVal.textContent  = diff + (diff === 1 ? ' day' : ' days');
+    totalVal.textContent = '€' + (diff * pricePerDay).toFixed(2);
+  }
+
+  pickupEl.addEventListener('change', () => { returnEl.min = pickupEl.value; updateSummary(); });
+  returnEl.addEventListener('change', updateSummary);
+  updateSummary();
+</script>
+</body>
+</html>

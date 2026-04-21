@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard —FunDrive Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="admin-body">
+
+<div class="admin-header">
+  <div class="container admin-header-inner">
+    <div>
+      <h1>Dashboard</h1>
+      <h3 class="admin-user">Signed in as {{ session.admin_user }}</h3>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center;">
+      <a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">View Site</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-ghost btn-sm">Sign Out</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-messages">
+    {% for category, message in messages %}
+    <div class="flash flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- ── CARS SECTION ── -->
+  <div class="dash-section">
+    <div class="dash-section-header">
+      <h2>Cars ({{ cars|length }})</h2>
+      <button class="btn btn-primary btn-sm" onclick="openModal('add-car-modal')">+ Add Car</button>
+    </div>
+
+    {% if cars %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Price/Day</th><th>Status</th><th>Image URL</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for car in cars %}
+        <tr>
+          <td>{{ car.id }}</td>
+          <td><strong>{{ car.name }}</strong></td>
+          <td>Ksh{{ "%.2f"|format(car.price_per_day) }}</td>
+          <td>
+            {% if car.is_available %}
+            <span class="badge badge-available">Available</span>
+            {% else %}
+            <span class="badge badge-unavailable">Unavailable</span>
+            {% endif %}
+          </td>
+          <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px;">
+            {{ car.image_url or '—' }}
+          </td>
+          <td>
+            <button class="btn btn-ghost btn-sm"
+              onclick="openEditModal({{ car.id }}, {{ car.name|tojson }}, {{ car.price_per_day }}, {{ car.image_url|tojson }}, {{ car.is_available }})">
+              Edit
+            </button>
+            <form method="post" action="{{ url_for('admin_delete_car', car_id=car.id) }}"
+                  onsubmit="return confirm('Delete {{ car.name }}? This cannot be undone.')">
+              <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--muted); padding:20px 0;">No cars yet. Add one above.</p>
+    {% endif %}
+  </div>
+
+  <!-- ── BOOKINGS SECTION ── -->
+  <div class="dash-section">
+    <div class="dash-section-header">
+      <h2>Bookings ({{ bookings|length }})</h2>
+    </div>
+
+    {% if bookings %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Car</th><th>Customer</th><th>Email</th>
+            <th>Pickup</th><th>Return</th><th>Total</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for b in bookings %}
+        <tr>
+          <td>{{ b.id }}</td>
+          <td>{{ b.car_name }}</td>
+          <td>{{ b.customer_name }}</td>
+          <td style="color:var(--muted); font-size:12px;">{{ b.customer_email }}</td>
+          <td>{{ b.pickup_date }}</td>
+          <td>{{ b.return_date }}</td>
+          <td>Ksh{{ "%.2f"|format(b.total_price) }}</td>
+          <td>
+            <span class="badge badge-{{ b.status }}">{{ b.status }}</span>
+          </td>
+          <td>
+            {% if b.status == 'confirmed' %}
+            <form method="post" action="{{ url_for('admin_cancel_booking', booking_id=b.id) }}"
+                  onsubmit="return confirm('Cancel booking #{{ b.id }}?')">
+              <button type="submit" class="btn btn-danger btn-sm">Cancel</button>
+            </form>
+            {% else %}
+            <span style="color:var(--muted); font-size:12px;">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--muted); padding:20px 0;">No bookings yet.</p>
+    {% endif %}
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── Add Car Modal ── -->
+<div class="modal-overlay" id="add-car-modal">
+  <div class="modal">
+    <h3>Add New Car</h3>
+    <form method="post" action="{{ url_for('admin_add_car') }}">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="e.g. Toyota Yaris" required>
+      </div>
+      <div class="form-group">
+        <label>Price per day (Ksh)</label>
+        <input type="number" name="price_per_day" placeholder="45.00" min="0" step="0.01" required>
+      </div>
+      <div class="form-group">
+        <label>Image URL</label>
+        <input type="text" name="image_url" placeholder="https://…">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="is_available">
+          <option value="1">Available</option>
+          <option value="0">Unavailable</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('add-car-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Car</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit Car Modal ── -->
+<div class="modal-overlay" id="edit-car-modal">
+  <div class="modal">
+    <h3>Edit Car</h3>
+    <form method="post" id="edit-car-form" action="">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" name="name" id="edit-name" required>
+      </div>
+      <div class="form-group">
+        <label>Price per day (Ksh)</label>
+        <input type="number" name="price_per_day" id="edit-price" min="0" step="0.01" required>
+      </div>
+      <div class="form-group">
+        <label>Image URL</label>
+        <input type="text" name="image_url" id="edit-image">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select name="is_available" id="edit-available">
+          <option value="1">Available</option>
+          <option value="0">Unavailable</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('edit-car-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<footer style="margin-top:40px;">
+  <div class="container">FunDrive Admin &copy; 2025</div>
+</footer>
+
+<script>
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function openEditModal(id, name, price, imageUrl, isAvailable) {
+  document.getElementById('edit-car-form').action = '/admin/edit_car/' + id;
+  document.getElementById('edit-name').value       = name;
+  document.getElementById('edit-price').value      = price;
+  document.getElementById('edit-image').value      = imageUrl;
+  document.getElementById('edit-available').value  = isAvailable ? '1' : '0';
+  openModal('edit-car-modal');
+}
+
+// Close modals when clicking overlay background
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>

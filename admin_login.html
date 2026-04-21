@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — FlaskDrive</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <h1>Administration Portal</h1>
+    <h2 class="subtitle">FunDrive Management Console</h2>
+
+    {% if error %}
+    <div class="login-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="{{ url_for('admin_login') }}">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:8px;">
+        Sign In
+      </button>
+    </form>
+    <div style="margin-top:16px; text-align:center;">
+      <a href="{{ url_for('index') }}" class="btn btn-ghost">← Back to site</a>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
